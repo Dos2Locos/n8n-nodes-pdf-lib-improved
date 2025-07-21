@@ -1,0 +1,26 @@
+{
+  "name": "GetPdfInfo",
+  "displayName": "Get PDF Info",
+  "group": ["transform"],
+  "version": 1,
+  "description": "Extracts information from a PDF file, such as page count.",
+  "defaults": {
+    "name": "Get PDF Info"
+  },
+  "inputs": ["main"],
+  "outputs": ["main"],
+  "properties": [
+    {
+      "displayName": "Binary Property",
+      "name": "binaryPropertyName",
+      "type": "string",
+      "default": "data",
+      "description": "Name of the binary property containing the PDF file."
+    }
+  ],
+  "examples": [
+    {
+      "description": "Get the page count of a PDF file from binary input."
+    }
+  ]
+} 
