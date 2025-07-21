@@ -39,7 +39,8 @@
     "nodes": [
       "dist/nodes/ExampleNode/ExampleNode.node.js",
       "dist/nodes/HttpBin/HttpBin.node.js",
-      "dist/nodes/GetPdfInfo/GetPdfInfo.node.js"
+      "dist/nodes/GetPdfInfo/GetPdfInfo.node.js",
+      "dist/nodes/SplitPdf/SplitPdf.node.js"
     ]
   },
   "devDependencies": {
