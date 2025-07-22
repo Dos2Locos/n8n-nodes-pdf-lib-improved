@@ -34,7 +34,7 @@
 		"n8nNodesApiVersion": 1,
 		"credentials": [],
 		"nodes": [
-			"dist/nodes/PdfOperations/PdfLib.node.js"
+			"dist/nodes/PdfLib/PdfLib.node.js"
 		]
 	},
 	"devDependencies": {
