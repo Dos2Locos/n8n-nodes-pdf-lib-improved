@@ -12,6 +12,7 @@ export class PdfLib implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'PDF-LIB',
 		name: 'pdfLib',
+		icon: 'file:PdfLib.svg',
 		group: ['transform'],
 		version: 1,
 		description: 'Perform operations on PDF files (get info, split)',
