@@ -96,14 +96,24 @@ export class PdfLib implements INodeType {
 
 				// Try to get binary from filesystem
 				const binaryData = item.binary[binaryPropertyName];
-				const filePath = `${binaryData.directory}/${binaryData.fileName}`;
-				const fileBytes = fs.readFileSync(filePath);
-				let pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
-
-				if(!pdfDoc){
-					// Not found in filesystem, try to get from binary
-					const pdfBuffer = Buffer.from(item.binary[binaryPropertyName].data, 'base64');
-					pdfDoc = await PDFDocument.load(pdfBuffer);
+				let pdfDoc;
+				
+				try {
+					const filePath = `${binaryData.directory}/${binaryData.fileName}`;
+					const fileBytes = fs.readFileSync(filePath);
+					pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
+				} catch (filesystemError) {
+					// Filesystem approach failed, try to get from binary data
+					try {
+						const pdfBuffer = await this.helpers.getBinaryDataBuffer(itemIndex, binaryPropertyName);
+						pdfDoc =  await PDFDocument.load(pdfBuffer);
+					} catch (binaryError) {
+						throw new NodeOperationError(
+							this.getNode(),
+							`Failed to load PDF from both filesystem and binary data. Filesystem error: ${filesystemError.message}, Binary error: ${binaryError.message}`,
+							{ itemIndex },
+						);
+					}
 				}
 
 				if (operation === 'getInfo') {
