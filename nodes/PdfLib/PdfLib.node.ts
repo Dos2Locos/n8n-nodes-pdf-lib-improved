@@ -7,6 +7,7 @@ import type {
 import { NodeConnectionType, NodeOperationError } from 'n8n-workflow';
 const { PDFDocument } = require('../../lib/pdf-lib/pdf-lib.min.js');
 import { Buffer } from 'buffer';
+const fs = require('fs');
 
 export class PdfLib implements INodeType {
 	description: INodeTypeDescription = {
@@ -93,8 +94,17 @@ export class PdfLib implements INodeType {
 					);
 				}
 
-				const pdfBuffer = Buffer.from(item.binary[binaryPropertyName].data, 'base64');
-				const pdfDoc = await PDFDocument.load(pdfBuffer);
+				// Try to get binary from filesystem
+				const binaryData = item.binary[binaryPropertyName];
+				const filePath = `${binaryData.directory}/${binaryData.fileName}`;
+				const fileBytes = fs.readFileSync(filePath);
+				let pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
+
+				if(!pdfDoc){
+					// Not found in filesystem, try to get from binary
+					const pdfBuffer = Buffer.from(item.binary[binaryPropertyName].data, 'base64');
+					pdfDoc = await PDFDocument.load(pdfBuffer);
+				}
 
 				if (operation === 'getInfo') {
 					// Get PDF Info operation
