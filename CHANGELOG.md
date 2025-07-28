@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.4](https://github.com/vvcent/n8n-nodes-pdf-lib/compare/v0.1.3...v0.1.4) (2025-07-28)
+
+
+### Features
+
+* get file data from filesystem and binary data buffer ([290a817](https://github.com/vvcent/n8n-nodes-pdf-lib/commit/290a8170ae57073b2b5133a9751139e4c06b2714))
+
 ### [0.1.3](https://github.com/vvcent/n8n-nodes-pdf-lib/compare/v0.1.2...v0.1.3) (2025-07-28)
 
 
