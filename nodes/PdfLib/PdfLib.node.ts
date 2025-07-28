@@ -5,7 +5,7 @@ import type {
 	INodeTypeDescription,
 } from 'n8n-workflow';
 import { NodeConnectionType, NodeOperationError } from 'n8n-workflow';
-import { PDFDocument } from 'pdf-lib';
+const { PDFDocument } = require('../../lib/pdf-lib/pdf-lib.min.js');
 import { Buffer } from 'buffer';
 
 export class PdfLib implements INodeType {
@@ -120,7 +120,7 @@ export class PdfLib implements INodeType {
 							pdfDoc,
 							Array.from({ length: end - i }, (_, idx) => i + idx),
 						);
-						copiedPages.forEach((page) => newPdf.addPage(page));
+						copiedPages.forEach((page: any) => newPdf.addPage(page));
 						const newPdfBytes = await newPdf.save();
 						pdfChunks.push({
 							data: Buffer.from(newPdfBytes).toString('base64'),

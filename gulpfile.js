@@ -12,5 +12,9 @@ function copyIcons() {
 	const credSource = path.resolve('credentials', '**', '*.{png,svg}');
 	const credDestination = path.resolve('dist', 'credentials');
 
-	return src(credSource).pipe(dest(credDestination));
+	// Copy all lib files and folders
+	const libSource = path.resolve('lib');
+	const libDestination = path.resolve('dist', 'lib');
+
+	return src(libSource + '/**/*').pipe(dest(libDestination));
 }
