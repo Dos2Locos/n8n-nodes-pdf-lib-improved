@@ -79,13 +79,9 @@ export class PdfLib implements INodeType {
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
 			let pdfDoc;
 			let fileBytes;
-			let debugInfo = {
-				checkPoint: 0,
-			};
+			let debugInfo = {};
 
 			try {
-				debugInfo.checkPoint = 1;
-
 				const operation = this.getNodeParameter('operation', itemIndex) as string;
 				const binaryPropertyName = this.getNodeParameter(
 					'binaryPropertyName',
@@ -93,8 +89,6 @@ export class PdfLib implements INodeType {
 					'data',
 				) as string;
 				const item = items[itemIndex];
-
-				debugInfo.checkPoint = 2;
 
 				if (!item.binary || !item.binary[binaryPropertyName]) {
 					throw new NodeOperationError(
@@ -104,24 +98,18 @@ export class PdfLib implements INodeType {
 					);
 				}
 
-				debugInfo.checkPoint = 3;
-
 				// Get file bytes
 				try {
-					debugInfo.checkPoint = 4;
 					// Try to get file bytes from filesystem
 					const binaryData = item.binary[binaryPropertyName];
 					const filePath = `${binaryData.directory}/${binaryData.fileName}`;
 					fileBytes = fs.readFileSync(filePath);
 					pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
-					debugInfo.checkPoint = 5;
 				} catch (filesystemError) {
 					// Try to get file bytes from binary data buffer
 					try {
-						debugInfo.checkPoint = 6;
 						fileBytes = await this.helpers.getBinaryDataBuffer(itemIndex, binaryPropertyName);
 						pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
-						debugInfo.checkPoint = 7;
 					} catch (binaryError) {
 						throw new NodeOperationError(
 							this.getNode(),
@@ -131,11 +119,9 @@ export class PdfLib implements INodeType {
 					}
 				}
 
-				debugInfo.checkPoint = 8;
 				switch (operation) {
 					case 'getInfo':
 						// Get PDF Info operation
-						debugInfo.checkPoint = 9;
 						const pageCount = pdfDoc.getPageCount();
 						returnData.push({
 							json: {
@@ -145,7 +131,6 @@ export class PdfLib implements INodeType {
 							},
 							pairedItem: itemIndex,
 						});
-						debugInfo.checkPoint = 10;
 						break;
 
 					case 'split':
