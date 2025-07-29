@@ -77,7 +77,15 @@ export class PdfLib implements INodeType {
 		const returnData: INodeExecutionData[] = [];
 
 		for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+			let pdfDoc;
+			let fileBytes;
+			let debugInfo = {
+				checkPoint: 0,
+			};
+
 			try {
+				debugInfo.checkPoint = 1;
+
 				const operation = this.getNodeParameter('operation', itemIndex) as string;
 				const binaryPropertyName = this.getNodeParameter(
 					'binaryPropertyName',
@@ -85,6 +93,8 @@ export class PdfLib implements INodeType {
 					'data',
 				) as string;
 				const item = items[itemIndex];
+
+				debugInfo.checkPoint = 2;
 
 				if (!item.binary || !item.binary[binaryPropertyName]) {
 					throw new NodeOperationError(
@@ -94,19 +104,24 @@ export class PdfLib implements INodeType {
 					);
 				}
 
-				// Try to get binary from filesystem
-				const binaryData = item.binary[binaryPropertyName];
-				let pdfDoc;
-				
+				debugInfo.checkPoint = 3;
+
+				// Get file bytes
 				try {
+					debugInfo.checkPoint = 4;
+					// Try to get file bytes from filesystem
+					const binaryData = item.binary[binaryPropertyName];
 					const filePath = `${binaryData.directory}/${binaryData.fileName}`;
-					const fileBytes = fs.readFileSync(filePath);
+					fileBytes = fs.readFileSync(filePath);
 					pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
+					debugInfo.checkPoint = 5;
 				} catch (filesystemError) {
-					// Filesystem approach failed, try to get from binary data
+					// Try to get file bytes from binary data buffer
 					try {
-						const pdfBuffer = await this.helpers.getBinaryDataBuffer(itemIndex, binaryPropertyName);
-						pdfDoc =  await PDFDocument.load(pdfBuffer);
+						debugInfo.checkPoint = 6;
+						fileBytes = await this.helpers.getBinaryDataBuffer(itemIndex, binaryPropertyName);
+						pdfDoc = await PDFDocument.load(fileBytes, { ignoreEncryption: true });
+						debugInfo.checkPoint = 7;
 					} catch (binaryError) {
 						throw new NodeOperationError(
 							this.getNode(),
@@ -116,62 +131,78 @@ export class PdfLib implements INodeType {
 					}
 				}
 
-				if (operation === 'getInfo') {
-					// Get PDF Info operation
-					const pageCount = pdfDoc.getPageCount();
-					returnData.push({
-						json: {
-							pageCount,
-							operation: 'getInfo',
-							fileName: item.binary[binaryPropertyName].fileName || 'unknown.pdf',
-						},
-						pairedItem: itemIndex,
-					});
-				} else if (operation === 'split') {
-					// Split PDF operation
-					const chunkSize = this.getNodeParameter('chunkSize', itemIndex, 1) as number;
-					const totalPages = pdfDoc.getPageCount();
-					const pdfChunks: { data: string; pageRange: string }[] = [];
-
-					for (let i = 0; i < totalPages; i += chunkSize) {
-						const newPdf = await PDFDocument.create();
-						const end = Math.min(i + chunkSize, totalPages);
-						const copiedPages = await newPdf.copyPages(
-							pdfDoc,
-							Array.from({ length: end - i }, (_, idx) => i + idx),
-						);
-						copiedPages.forEach((page: any) => newPdf.addPage(page));
-						const newPdfBytes = await newPdf.save();
-						pdfChunks.push({
-							data: Buffer.from(newPdfBytes).toString('base64'),
-							pageRange: `${i + 1}-${end}`,
-						});
-					}
-
-					returnData.push({
-						json: {
-							count: pdfChunks.length,
-							pageRanges: pdfChunks.map((c) => c.pageRange),
-							operation: 'split',
-							originalFileName: item.binary[binaryPropertyName].fileName || 'unknown.pdf',
-						},
-						binary: pdfChunks.reduce(
-							(acc, chunk, idx) => {
-								acc[`pdf${idx + 1}`] = {
-									data: chunk.data,
-									fileName: `split_${idx + 1}.pdf`,
-									mimeType: 'application/pdf',
-								};
-								return acc;
+				debugInfo.checkPoint = 8;
+				switch (operation) {
+					case 'getInfo':
+						// Get PDF Info operation
+						debugInfo.checkPoint = 9;
+						const pageCount = pdfDoc.getPageCount();
+						returnData.push({
+							json: {
+								pageCount,
+								operation: 'getInfo',
+								fileName: item.binary[binaryPropertyName].fileName || 'unknown.pdf',
 							},
-							{} as Record<string, { data: string; fileName: string; mimeType: string }>,
-						),
-						pairedItem: itemIndex,
-					});
+							pairedItem: itemIndex,
+						});
+						debugInfo.checkPoint = 10;
+						break;
+
+					case 'split':
+						// Split PDF operation
+						const chunkSize = this.getNodeParameter('chunkSize', itemIndex, 1) as number;
+						const totalPages = pdfDoc.getPageCount();
+						const pdfChunks: { data: string; pageRange: string }[] = [];
+
+						for (let i = 0; i < totalPages; i += chunkSize) {
+							const newPdf = await PDFDocument.create();
+							const end = Math.min(i + chunkSize, totalPages);
+							const copiedPages = await newPdf.copyPages(
+								pdfDoc,
+								Array.from({ length: end - i }, (_, idx) => i + idx),
+							);
+							copiedPages.forEach((page: any) => newPdf.addPage(page));
+							const newPdfBytes = await newPdf.save();
+							pdfChunks.push({
+								data: Buffer.from(newPdfBytes).toString('base64'),
+								pageRange: `${i + 1}-${end}`,
+							});
+						}
+
+						returnData.push({
+							json: {
+								count: pdfChunks.length,
+								pageRanges: pdfChunks.map((c) => c.pageRange),
+								operation: 'split',
+								originalFileName: item.binary[binaryPropertyName].fileName || 'unknown.pdf',
+							},
+							binary: pdfChunks.reduce(
+								(acc, chunk, idx) => {
+									acc[`pdf${idx + 1}`] = {
+										data: chunk.data,
+										fileName: `split_${idx + 1}.pdf`,
+										mimeType: 'application/pdf',
+									};
+									return acc;
+								},
+								{} as Record<string, { data: string; fileName: string; mimeType: string }>,
+							),
+							pairedItem: itemIndex,
+						});
+						break;
 				}
 			} catch (error) {
 				if (this.continueOnFail()) {
-					returnData.push({ json: { error: error.message }, pairedItem: itemIndex });
+					returnData.push({
+						json: {
+							error: error.message,
+							debugInfo: {
+								...debugInfo,
+								fileBytes,
+							},
+						},
+						pairedItem: itemIndex,
+					});
 				} else {
 					throw new NodeOperationError(this.getNode(), error, { itemIndex });
 				}
