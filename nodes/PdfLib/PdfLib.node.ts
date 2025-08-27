@@ -68,14 +68,14 @@ export class PdfLib implements INodeType {
 	}
 
 	description: INodeTypeDescription = {
-		displayName: 'PDF-LIB',
+		displayName: 'PDF Tools Enhanced',
 		name: 'pdfLib',
 		icon: 'file:PdfLib.svg',
 		group: ['transform'],
 		version: 1,
-		description: 'Perform operations on PDF files (get info, split)',
+		description: 'Advanced PDF operations: extract info and split documents with flexible page ranges',
 		defaults: {
-			name: 'PDF-LIB',
+			name: 'PDF Tools Enhanced',
 		},
 		inputs: [NodeConnectionType.Main],
 		outputs: [NodeConnectionType.Main],
@@ -90,14 +90,14 @@ export class PdfLib implements INodeType {
 					{
 						name: 'Get PDF Info',
 						value: 'getInfo',
-						description: 'Extract information from a PDF file',
+						description: 'Extract metadata and page count from a PDF document',
 						action: 'Get information from a PDF file',
 					},
 					{
 						name: 'Split PDF',
 						value: 'split',
-						description: 'Split a PDF into chunks of pages',
-						action: 'Split a PDF into chunks of pages',
+						description: 'Split PDF by fixed chunks or custom page ranges (e.g., "1-3,5,7-10")',
+						action: 'Split a PDF into smaller documents',
 					},
 				],
 				default: 'getInfo',
@@ -217,13 +217,165 @@ export class PdfLib implements INodeType {
 
 				switch (operation) {
 					case 'getInfo':
-						// Get PDF Info operation
+						// Get comprehensive PDF Info with robust error handling
 						const pageCount = pdfDoc.getPageCount();
+						const fileSizeBytes = fileBytes.length;
+						
+						// Initialize all variables with safe defaults
+						let title: string | null = null;
+						let author: string | null = null;
+						let subject: string | null = null;
+						let creator: string | null = null;
+						let producer: string | null = null;
+						let keywords: string | null = null;
+						let creationDate: Date | null = null;
+						let modificationDate: Date | null = null;
+						let version = 'PDF 1.4'; // Default PDF version
+						let isEncrypted = false;
+						let hasAcroForm = false;
+						let pageInfo: any[] = [];
+						
+						// Basic metadata - with error handling
+						try {
+							title = pdfDoc.getTitle() || null;
+						} catch (error) { /* ignore */ }
+						
+						try {
+							author = pdfDoc.getAuthor() || null;
+						} catch (error) { /* ignore */ }
+						
+						try {
+							subject = pdfDoc.getSubject() || null;
+						} catch (error) { /* ignore */ }
+						
+						try {
+							creator = pdfDoc.getCreator() || null;
+						} catch (error) { /* ignore */ }
+						
+						try {
+							producer = pdfDoc.getProducer() || null;
+						} catch (error) { /* ignore */ }
+						
+						try {
+							keywords = pdfDoc.getKeywords() || null;
+						} catch (error) { /* ignore */ }
+						
+						// Dates
+						try {
+							creationDate = pdfDoc.getCreationDate() || null;
+						} catch (error) { /* ignore */ }
+						
+						try {
+							modificationDate = pdfDoc.getModificationDate() || null;
+						} catch (error) { /* ignore */ }
+						
+						// Security info
+						try {
+							isEncrypted = pdfDoc.isEncrypted || false;
+						} catch (error) { /* ignore */ }
+						
+						// Form info
+						try {
+							const form = pdfDoc.getForm();
+							hasAcroForm = form ? true : false;
+						} catch (error) { /* ignore */ }
+						
+						// Page analysis with error handling
+						try {
+							const pages = pdfDoc.getPages();
+							pageInfo = pages.map((page: any, index: number) => {
+								try {
+									const { width, height } = page.getSize();
+									let rotation = 0;
+									
+									try {
+										rotation = page.getRotation().angle || 0;
+									} catch (error) {
+										// Some PDFs might not have rotation info
+										rotation = 0;
+									}
+									
+									const orientation = width > height ? 'landscape' : 'portrait';
+									
+									return {
+										pageNumber: index + 1,
+										width: Math.round(width * 100) / 100,
+										height: Math.round(height * 100) / 100,
+										orientation,
+										rotation
+									};
+								} catch (error) {
+									// If we can't get page info, return basic info
+									return {
+										pageNumber: index + 1,
+										width: 612, // Default letter size
+										height: 792,
+										orientation: 'portrait',
+										rotation: 0
+									};
+								}
+							});
+						} catch (error) {
+							// If pages analysis fails completely, create basic page info
+							pageInfo = Array.from({ length: pageCount }, (_, index) => ({
+								pageNumber: index + 1,
+								width: 612,
+								height: 792,
+								orientation: 'portrait',
+								rotation: 0
+							}));
+						}
+						
+						
+						// Calculate page statistics
+						const landscapePages = pageInfo.filter((p: any) => p.orientation === 'landscape').length;
+						const portraitPages = pageInfo.filter((p: any) => p.orientation === 'portrait').length;
+						const rotatedPages = pageInfo.filter((p: any) => p.rotation !== 0).length;
+						
+						// Get unique page sizes
+						const uniqueSizes = [...new Set(pageInfo.map((p: any) => `${p.width}x${p.height}`))];
+						const hasUniformSize = uniqueSizes.length === 1;
+						
 						returnData.push({
 							json: {
+								// Basic info
 								pageCount,
-								operation: 'getInfo',
 								fileName: item.binary[binaryPropertyName].fileName || 'unknown.pdf',
+								fileSizeBytes,
+								fileSizeMB: Math.round((fileSizeBytes / (1024 * 1024)) * 100) / 100,
+								operation: 'getInfo',
+								
+								// Metadata
+								metadata: {
+									title,
+									author,
+									subject,
+									creator,
+									producer,
+									keywords,
+									creationDate: creationDate ? creationDate.toISOString() : null,
+									modificationDate: modificationDate ? modificationDate.toISOString() : null,
+								},
+								
+								// Technical information
+								technicalInfo: {
+									version,
+									isEncrypted,
+									hasAcroForm,
+								},
+								
+								// Page statistics
+								pageStatistics: {
+									totalPages: pageCount,
+									landscapePages,
+									portraitPages,
+									rotatedPages,
+									hasUniformSize,
+									uniqueSizes,
+								},
+								
+								// Detailed page information
+								pageDetails: pageInfo,
 							},
 							pairedItem: itemIndex,
 						});

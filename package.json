@@ -1,19 +1,19 @@
 {
-	"name": "n8n-nodes-pdf-lib",
-	"version": "0.1.5",
-	"description": "PDF Library for n8n",
+	"name": "n8n-nodes-pdf-lib-improved",
+	"version": "0.3.0",
+	"description": "Enhanced PDF Library for n8n with advanced splitting capabilities including page ranges support",
 	"keywords": [
 		"n8n-community-node-package"
 	],
 	"license": "MIT",
-	"homepage": "https://github.com/vvcent/n8n-nodes-pdf-lib",
+	"homepage": "https://github.com/Dos2Locos/n8n-nodes-pdf-lib-improved",
 	"author": {
-		"name": "Vincent Wong",
-		"email": "hello@vincentwong.hk"
+		"name": "César Gómez Antonio",
+		"email": "cegomez@gmail.com"
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/vvcent/n8n-nodes-pdf-lib"
+		"url": "git+https://github.com/Dos2Locos/n8n-nodes-pdf-lib-improved.git"
 	},
 	"engines": {
 		"node": ">=20.15"
@@ -22,10 +22,10 @@
 	"scripts": {
 		"build": "npx rimraf dist && tsc && gulp build:icons",
 		"dev": "tsc --watch",
-		"format": "prettier nodes credentials --write",
-		"lint": "eslint nodes credentials package.json",
-		"lintfix": "eslint nodes credentials package.json --fix",
-		"prepublishOnly": "npm run build && npm run lint -c .eslintrc.prepublish.js nodes credentials package.json",
+		"format": "prettier nodes --write",
+		"lint": "eslint nodes package.json",
+		"lintfix": "eslint nodes package.json --fix",
+		"prepublishOnly": "npm run build && npm run lint -c .eslintrc.prepublish.js nodes package.json",
 		"release": "npx standard-version"
 	},
 	"files": [
